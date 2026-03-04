@@ -1,0 +1,20 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mattermost-db-policy
+  namespace: ekmai-collab
+spec:
+  podSelector:
+    matchLabels:
+      app: mattermost-db
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: mattermost-app
+      ports:
+        - protocol: TCP
+          port: 5432

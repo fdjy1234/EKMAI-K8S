@@ -1,0 +1,81 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mattermost-db
+  namespace: ekmai-collab
+  labels:
+    app: mattermost-db
+spec:
+  serviceName: mattermost-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mattermost-db
+  template:
+    metadata:
+      labels:
+        app: mattermost-db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17-alpine
+          ports:
+            - containerPort: 5432
+              name: postgres
+          env:
+            - name: POSTGRES_DB
+              value: mattermost
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: mattermost-db-secret
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mattermost-db-secret
+                  key: password
+            - name: POSTGRES_HOST_AUTH_METHOD
+              value: trust
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "mmuser", "-d", "mattermost"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "mmuser", "-d", "mattermost"]
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: db-data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: db-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mattermost-db
+  namespace: ekmai-collab
+spec:
+  clusterIP: None
+  selector:
+    app: mattermost-db
+  ports:
+    - port: 5432
+      targetPort: 5432

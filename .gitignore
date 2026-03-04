@@ -1,0 +1,29 @@
+# Secrets (actual values)
+secrets/*.yaml
+!secrets/*.example.yaml
+
+# Environment files
+.env
+*.env
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Helm
+charts/
+*.tgz
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# Temporary
+tmp/

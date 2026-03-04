@@ -1,0 +1,67 @@
+# ============================================================
+# Keycloak Helm Values (Bitnami Chart)
+# helm install keycloak bitnami/keycloak -n ekmai-iam -f keycloak-values.yaml
+# ============================================================
+
+auth:
+  adminUser: admin
+  existingSecret: keycloak-admin-secret
+  passwordSecretKey: password
+
+replicaCount: 2
+
+postgresql:
+  enabled: true
+  auth:
+    existingSecret: keycloak-db-secret
+    secretKeys:
+      userPasswordKey: password
+    username: keycloak
+    database: keycloak
+  primary:
+    persistence:
+      enabled: true
+      size: 5Gi
+
+proxy: edge
+httpRelativePath: "/"
+
+extraEnvVars:
+  - name: KC_HOSTNAME
+    value: keycloak.it205.ski.ad
+  - name: KC_HOSTNAME_STRICT
+    value: "false"
+  - name: KC_HOSTNAME_STRICT_HTTPS
+    value: "false"
+  - name: KC_HTTP_ENABLED
+    value: "true"
+  - name: KC_PROXY_HEADERS
+    value: xforwarded
+  - name: KC_LOG_LEVEL
+    value: info
+  - name: KC_HEALTH_ENABLED
+    value: "true"
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /health/ready
+    port: http
+  initialDelaySeconds: 60
+  periodSeconds: 15
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /health/live
+    port: http
+  initialDelaySeconds: 120
+  periodSeconds: 30

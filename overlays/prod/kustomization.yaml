@@ -1,0 +1,46 @@
+# ============================================================
+# Prod Overlay — 生產環境
+# 使用方式：kubectl apply -k overlays/prod/
+# ============================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base/iam
+  - ../../base/collab
+  - ../../base/kb
+  - ../../base/observe
+
+patches:
+  # Keycloak HA — 2 replicas
+  - target:
+      kind: Deployment
+      name: keycloak
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 2
+
+  # Mattermost — 增加資源
+  - target:
+      kind: Deployment
+      name: mattermost-app
+    patch: |
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: "2"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: 4Gi
+
+  # Elasticsearch — 3 節點叢集
+  - target:
+      kind: Elasticsearch
+      name: ekmai-es
+    patch: |
+      - op: replace
+        path: /spec/nodeSets/0/count
+        value: 3
+
+commonLabels:
+  environment: prod

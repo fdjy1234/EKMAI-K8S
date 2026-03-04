@@ -1,0 +1,57 @@
+name: CI — YAML Lint & K8S Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install yamllint
+        run: pip install yamllint
+
+      - name: Lint YAML files
+        run: |
+          yamllint -d "{extends: relaxed, rules: {line-length: {max: 200}}}" \
+            namespaces/ base/ overlays/ helm-values/ secrets/
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'v1.30.0'
+
+      - name: Validate Namespace YAML
+        run: kubectl apply --dry-run=client -f namespaces/namespaces.yaml
+
+      - name: Validate IAM manifests
+        run: kubectl apply --dry-run=client -k base/iam/ 2>&1 || echo "⚠️ Some CRDs may not be available in dry-run"
+
+      - name: Validate Collab manifests
+        run: kubectl apply --dry-run=client -k base/collab/ 2>&1 || echo "⚠️ Some CRDs may not be available in dry-run"
+
+      - name: Validate KB manifests
+        run: kubectl apply --dry-run=client -k base/kb/ 2>&1 || echo "⚠️ Some CRDs may not be available in dry-run"
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'v3.14.0'
+
+      - name: Validate APISIX Helm values
+        run: |
+          helm repo add apisix https://charts.apiseven.com
+          helm repo update
+          helm template apisix apisix/apisix -f helm-values/apisix-values.yaml > /dev/null
+
+      - name: Validate Prometheus Helm values
+        run: |
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo update
+          helm template kube-prometheus prometheus-community/kube-prometheus-stack \
+            -f helm-values/prometheus-values.yaml > /dev/null

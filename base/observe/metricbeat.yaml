@@ -1,0 +1,72 @@
+---
+# Metricbeat — ECK Beat CRD (DaemonSet)
+# ⚠️ 需先建置 image 並推到 Registry，或使用官方 image
+apiVersion: beat.k8s.elastic.co/v1beta1
+kind: Beat
+metadata:
+  name: ekmai-metricbeat
+  namespace: ekmai-observe
+  labels:
+    app.kubernetes.io/part-of: ekmai
+spec:
+  type: metricbeat
+  version: 9.2.3
+  elasticsearchRef:
+    name: ekmai-es
+  kibanaRef:
+    name: ekmai-kibana
+  daemonSet:
+    podTemplate:
+      spec:
+        hostNetwork: true
+        dnsPolicy: ClusterFirstWithHostNet
+        automountServiceAccountToken: true
+        containers:
+          - name: metricbeat
+            securityContext:
+              runAsUser: 0
+            resources:
+              requests:
+                cpu: 100m
+                memory: 128Mi
+              limits:
+                cpu: 500m
+                memory: 512Mi
+        serviceAccountName: metricbeat
+---
+# Metricbeat ServiceAccount + RBAC
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: metricbeat
+  namespace: ekmai-observe
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ekmai-metricbeat
+rules:
+  - apiGroups: [""]
+    resources: ["nodes", "namespaces", "events", "pods", "services"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["statefulsets", "deployments", "replicasets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch"]
+  - nonResourceURLs: ["/metrics"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: ekmai-metricbeat
+subjects:
+  - kind: ServiceAccount
+    name: metricbeat
+    namespace: ekmai-observe
+roleRef:
+  kind: ClusterRole
+  name: ekmai-metricbeat
+  apiGroup: rbac.authorization.k8s.io

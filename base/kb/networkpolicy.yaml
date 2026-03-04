@@ -1,0 +1,60 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: wikijs-db-policy
+  namespace: ekmai-kb
+spec:
+  podSelector:
+    matchLabels:
+      app: wikijs-db
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: wikijs-app
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: outline-db-policy
+  namespace: ekmai-kb
+spec:
+  podSelector:
+    matchLabels:
+      app: outline-db
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: outline-app
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: outline-redis-policy
+  namespace: ekmai-kb
+spec:
+  podSelector:
+    matchLabels:
+      app: outline-redis
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: outline-app
+      ports:
+        - protocol: TCP
+          port: 6379

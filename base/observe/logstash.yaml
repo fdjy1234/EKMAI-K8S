@@ -1,0 +1,109 @@
+---
+# Logstash Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logstash
+  namespace: ekmai-observe
+  labels:
+    app: logstash
+    app.kubernetes.io/part-of: ekmai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: logstash
+  template:
+    metadata:
+      labels:
+        app: logstash
+    spec:
+      containers:
+        - name: logstash
+          image: docker.elastic.co/logstash/logstash:9.2.3
+          ports:
+            - containerPort: 5044
+              name: beats
+            - containerPort: 8080
+              name: http
+          env:
+            - name: ELASTIC_USERNAME
+              value: elastic
+            - name: ELASTIC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: elk-secrets
+                  key: ELASTIC_PASSWORD
+            - name: ELASTICSEARCH_HOSTS
+              value: "https://ekmai-es-es-http:9200"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 9600
+            initialDelaySeconds: 60
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 9600
+            initialDelaySeconds: 120
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 2Gi
+          volumeMounts:
+            - name: pipeline
+              mountPath: /usr/share/logstash/pipeline
+              readOnly: true
+      volumes:
+        - name: pipeline
+          configMap:
+            name: logstash-pipeline
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: logstash
+  namespace: ekmai-observe
+spec:
+  type: ClusterIP
+  selector:
+    app: logstash
+  ports:
+    - port: 5044
+      targetPort: 5044
+      name: beats
+    - port: 8080
+      targetPort: 8080
+      name: http
+---
+# Logstash Pipeline ConfigMap（基本範例）
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-pipeline
+  namespace: ekmai-observe
+data:
+  logstash.conf: |
+    input {
+      beats {
+        port => 5044
+      }
+      http {
+        port => 8080
+        codec => json
+      }
+    }
+    output {
+      elasticsearch {
+        hosts => ["https://ekmai-es-es-http:9200"]
+        user => "${ELASTIC_USERNAME}"
+        password => "${ELASTIC_PASSWORD}"
+        ssl_certificate_verification => false
+        index => "logstash-%{+YYYY.MM.dd}"
+      }
+    }

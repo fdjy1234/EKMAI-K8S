@@ -1,0 +1,75 @@
+# ============================================================
+# APISIX Helm Values — EKMAI Gateway
+# helm install apisix apisix/apisix -n ekmai-gateway -f apisix-values.yaml
+# ============================================================
+
+apisix:
+  image:
+    repository: apache/apisix
+    tag: 3.14.1-debian
+  replicaCount: 2
+
+  ssl:
+    enabled: true
+    existingSecret: ekmai-tls-cert       # 企業 TLS 證書 Secret
+
+  admin:
+    credentials:
+      admin: "edd1c9f034335f136f87ad84b625c8f1"
+      viewer: "4054f7cf07e344346cd3f287985e76a2"
+    allow:
+      ipList:
+        - "10.0.0.0/8"                   # K8S Pod CIDR
+        - "172.16.0.0/12"
+        - "192.168.0.0/16"
+
+  prometheus:
+    enabled: true
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+etcd:
+  enabled: true
+  replicaCount: 3
+  persistence:
+    enabled: true
+    size: 8Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+dashboard:
+  enabled: true
+  replicaCount: 1
+  config:
+    authentication:
+      users:
+        - username: admin
+          password: admin              # ⚠️ 生產環境請更換
+
+gateway:
+  type: LoadBalancer                   # 或 NodePort
+  http:
+    enabled: true
+    servicePort: 80
+    containerPort: 9080
+  tls:
+    enabled: true
+    servicePort: 443
+    containerPort: 9443
+
+ingress-controller:
+  enabled: true
+  config:
+    apisix:
+      serviceNamespace: ekmai-gateway

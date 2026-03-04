@@ -1,0 +1,46 @@
+# ============================================================
+# Prometheus Stack Helm Values
+# helm install kube-prometheus prometheus-community/kube-prometheus-stack \
+#   -n ekmai-observe -f prometheus-values.yaml
+# ============================================================
+
+grafana:
+  adminPassword: admin              # ⚠️ 生產環境請更換
+  persistence:
+    enabled: true
+    size: 5Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+prometheus:
+  prometheusSpec:
+    scrapeInterval: 15s
+    retention: 15d
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 20Gi
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+
+alertmanager:
+  enabled: true
+
+nodeExporter:
+  enabled: true
+
+kubeStateMetrics:
+  enabled: true

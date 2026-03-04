@@ -1,0 +1,46 @@
+# ============================================================
+# Dev Overlay — 開發/本機環境
+# 使用方式：kubectl apply -k overlays/dev/
+# ============================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base/iam
+  - ../../base/collab
+  - ../../base/kb
+  - ../../base/observe
+
+# 開發環境：降低 replica 與資源
+patches:
+  # Keycloak 單 replica
+  - target:
+      kind: Deployment
+      name: keycloak
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 1
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: 100m
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 256Mi
+
+  # Elasticsearch 開發模式 (已在 base 中是 1 節點)
+
+  # Mattermost 低資源
+  - target:
+      kind: Deployment
+      name: mattermost-app
+    patch: |
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: 100m
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 256Mi
+
+commonLabels:
+  environment: dev

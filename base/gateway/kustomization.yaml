@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ekmai-gateway
+
+resources:
+  - ingress.yaml
+
+commonLabels:
+  app.kubernetes.io/part-of: ekmai
+  app.kubernetes.io/managed-by: kustomize
+
+# Note: APISIX 主要服務透過 Helm Chart 部署
+# 此 Kustomize 目錄僅包含額外的 Ingress 定義
+# Helm 安裝指令：
+#   helm install apisix apisix/apisix -n ekmai-gateway -f helm-values/apisix-values.yaml

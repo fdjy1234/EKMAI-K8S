@@ -1,0 +1,66 @@
+---
+# gitlab-proxy Deployment
+# ⚠️ 需先 build image 並推送到 Container Registry
+# docker build -t ghcr.io/fdjy1234/ekmai-gitlab-proxy:latest ./Mattermost/gitlab-proxy
+# docker push ghcr.io/fdjy1234/ekmai-gitlab-proxy:latest
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitlab-proxy
+  namespace: ekmai-collab
+  labels:
+    app: gitlab-proxy
+    app.kubernetes.io/part-of: ekmai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gitlab-proxy
+  template:
+    metadata:
+      labels:
+        app: gitlab-proxy
+    spec:
+      containers:
+        - name: gitlab-proxy
+          image: ghcr.io/fdjy1234/ekmai-gitlab-proxy:latest   # ⚠️ 替換為實際 Registry
+          ports:
+            - containerPort: 9009
+              name: http
+          env:
+            - name: PORT
+              value: "9009"
+            - name: KEYCLOAK_BASE_URL
+              value: https://keycloak.it205.ski.ad
+            - name: KEYCLOAK_REALM
+              value: dev-realm
+            - name: KEYCLOAK_CLIENT_ID
+              value: gitlab
+            - name: KEYCLOAK_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: gitlab-proxy-secret
+                  key: client-secret
+            - name: KEYCLOAK_TLS_VERIFY
+              value: "false"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitlab-proxy
+  namespace: ekmai-collab
+spec:
+  type: ClusterIP
+  selector:
+    app: gitlab-proxy
+  ports:
+    - port: 9009
+      targetPort: 9009
+      name: http

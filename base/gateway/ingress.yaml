@@ -1,0 +1,81 @@
+---
+# EKMAI 統一 Ingress 定義
+# 使用 APISIX Ingress Controller 路由到各服務
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ekmai-ingress
+  namespace: ekmai-gateway
+  annotations:
+    kubernetes.io/ingress.class: apisix
+spec:
+  tls:
+    - hosts:
+        - "*.it205.ski.ad"
+      secretName: ekmai-tls-cert
+  rules:
+    - host: keycloak.it205.ski.ad
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: keycloak.ekmai-iam.svc.cluster.local
+                port:
+                  number: 8080
+
+    - host: mattermost.it205.ski.ad
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mattermost-app.ekmai-collab.svc.cluster.local
+                port:
+                  number: 8065
+
+    - host: wikijs.it205.ski.ad
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: wikijs-app.ekmai-kb.svc.cluster.local
+                port:
+                  number: 3000
+
+    - host: outline.it205.ski.ad
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: outline-app.ekmai-kb.svc.cluster.local
+                port:
+                  number: 3000
+
+    - host: kibana.it205.ski.ad
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ekmai-kibana-kb-http.ekmai-observe.svc.cluster.local
+                port:
+                  number: 5601
+
+    - host: grafana.it205.ski.ad
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kube-prometheus-grafana.ekmai-observe.svc.cluster.local
+                port:
+                  number: 3000

@@ -1,0 +1,185 @@
+---
+# Wiki.js PostgreSQL
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: wikijs-db
+  namespace: ekmai-kb
+  labels:
+    app: wikijs-db
+spec:
+  serviceName: wikijs-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wikijs-db
+  template:
+    metadata:
+      labels:
+        app: wikijs-db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: wiki
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: wikijs-db-secret
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: wikijs-db-secret
+                  key: password
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "wiki", "-d", "wiki"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: db-data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: db-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wikijs-db
+  namespace: ekmai-kb
+spec:
+  clusterIP: None
+  selector:
+    app: wikijs-db
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+# Wiki.js Application
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wikijs-app
+  namespace: ekmai-kb
+  labels:
+    app: wikijs-app
+    app.kubernetes.io/part-of: ekmai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wikijs-app
+  template:
+    metadata:
+      labels:
+        app: wikijs-app
+    spec:
+      initContainers:
+        - name: wait-for-db
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z wikijs-db 5432; do
+                echo "Waiting for wikijs-db..."
+                sleep 2
+              done
+      containers:
+        - name: wikijs
+          image: ghcr.io/requarks/wiki:2
+          ports:
+            - containerPort: 3000
+              name: http
+          env:
+            - name: DB_TYPE
+              value: postgres
+            - name: DB_HOST
+              value: wikijs-db
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: wikijs-db-secret
+                  key: username
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: wikijs-db-secret
+                  key: password
+            - name: DB_NAME
+              value: wiki
+            - name: OFFLINE
+              value: "true"
+            - name: APP_LANG
+              value: zh-tw
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+          volumeMounts:
+            - name: wiki-data
+              mountPath: /wiki/data
+      volumes:
+        - name: wiki-data
+          persistentVolumeClaim:
+            claimName: wikijs-data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: wikijs-data
+  namespace: ekmai-kb
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wikijs-app
+  namespace: ekmai-kb
+spec:
+  type: ClusterIP
+  selector:
+    app: wikijs-app
+  ports:
+    - port: 3000
+      targetPort: 3000
+      name: http

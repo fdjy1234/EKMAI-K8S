@@ -1,0 +1,233 @@
+---
+# Outline PostgreSQL
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: outline-db
+  namespace: ekmai-kb
+  labels:
+    app: outline-db
+spec:
+  serviceName: outline-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: outline-db
+  template:
+    metadata:
+      labels:
+        app: outline-db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: outline
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: outline-db-secret
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: outline-db-secret
+                  key: password
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "outline"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: db-data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+    - metadata:
+        name: db-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: outline-db
+  namespace: ekmai-kb
+spec:
+  clusterIP: None
+  selector:
+    app: outline-db
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+# Outline Redis
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: outline-redis
+  namespace: ekmai-kb
+  labels:
+    app: outline-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: outline-redis
+  template:
+    metadata:
+      labels:
+        app: outline-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          ports:
+            - containerPort: 6379
+          readinessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: outline-redis
+  namespace: ekmai-kb
+spec:
+  type: ClusterIP
+  selector:
+    app: outline-redis
+  ports:
+    - port: 6379
+      targetPort: 6379
+---
+# Outline Application
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: outline-app
+  namespace: ekmai-kb
+  labels:
+    app: outline-app
+    app.kubernetes.io/part-of: ekmai
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: outline-app
+  template:
+    metadata:
+      labels:
+        app: outline-app
+    spec:
+      initContainers:
+        - name: wait-for-deps
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z outline-db 5432 && nc -z outline-redis 6379; do
+                echo "Waiting for outline-db and outline-redis..."
+                sleep 2
+              done
+      containers:
+        - name: outline
+          image: outlinewiki/outline:0.82.0
+          ports:
+            - containerPort: 3000
+              name: http
+          envFrom:
+            - secretRef:
+                name: outline-secrets          # SECRET_KEY, UTILS_SECRET, OIDC_CLIENT_SECRET
+            - configMapRef:
+                name: outline-config
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: outline-db-secret
+                  key: url
+            - name: REDIS_URL
+              value: redis://outline-redis:6379
+          readinessProbe:
+            httpGet:
+              path: /_health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /_health
+              port: 3000
+            initialDelaySeconds: 60
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+          volumeMounts:
+            - name: outline-data
+              mountPath: /var/lib/outline/data
+            - name: enterprise-ca
+              mountPath: /etc/ssl/certs/enterprise-root-ca.crt
+              subPath: ski-Root-CA.pem
+      volumes:
+        - name: outline-data
+          persistentVolumeClaim:
+            claimName: outline-data
+        - name: enterprise-ca
+          secret:
+            secretName: ekmai-root-ca
+            optional: true
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: outline-data
+  namespace: ekmai-kb
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: outline-app
+  namespace: ekmai-kb
+spec:
+  type: ClusterIP
+  selector:
+    app: outline-app
+  ports:
+    - port: 3000
+      targetPort: 3000
+      name: http
