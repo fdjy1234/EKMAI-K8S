@@ -1,29 +1,25 @@
-# Secrets (actual values)
-secrets/*.yaml
-!secrets/*.example.yaml
+# Dependencies
+**/node_modules/
 
-# Environment files
-.env
-*.env
+# Runtime data / volumes
+Mattermost/volumes/
+Mattermost/config/
+keycloak/keycloak_data/
+wikijs/wiki/data/
 
-# OS files
+# Environment variables (contain secrets)
+**/.env
+!**/.env.example
+
+# Temporary and logs
+tmp/
+tmp/*.log
+tmp/*.tmp
+tmp/*.pid
+
+# Certificates / keys
+*.pem
+
+# OS / editor
 .DS_Store
 Thumbs.db
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Helm
-charts/
-*.tgz
-
-# Terraform
-.terraform/
-*.tfstate
-*.tfstate.backup
-
-# Temporary
-tmp/

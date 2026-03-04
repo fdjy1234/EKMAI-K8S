@@ -1,17 +1,13 @@
----
-# Elasticsearch — ECK Custom Resource
 apiVersion: elasticsearch.k8s.elastic.co/v1
 kind: Elasticsearch
 metadata:
   name: ekmai-es
   namespace: ekmai-observe
-  labels:
-    app.kubernetes.io/part-of: ekmai
 spec:
-  version: 9.2.3
+  version: 8.14.3
   nodeSets:
     - name: default
-      count: 1                           # dev 預設 1 節點，prod overlay 可改為 3
+      count: 1
       config:
         node.store.allow_mmap: false
         xpack.security.enabled: true
@@ -22,7 +18,7 @@ spec:
             accessModes: ["ReadWriteOnce"]
             resources:
               requests:
-                storage: 50Gi
+                storage: 5Gi
       podTemplate:
         spec:
           containers:
@@ -32,64 +28,12 @@ spec:
                   value: "-Xms1g -Xmx1g"
               resources:
                 requests:
-                  memory: 2Gi
-                  cpu: 500m
+                  memory: 1Gi
+                  cpu: "500m"
                 limits:
-                  memory: 4Gi
-                  cpu: 2
----
-# Kibana — ECK Custom Resource
-apiVersion: kibana.k8s.elastic.co/v1
-kind: Kibana
-metadata:
-  name: ekmai-kibana
-  namespace: ekmai-observe
-  labels:
-    app.kubernetes.io/part-of: ekmai
-spec:
-  version: 9.2.3
-  count: 1
-  elasticsearchRef:
-    name: ekmai-es
+                  memory: 2Gi
+                  cpu: "1000m"
   http:
     tls:
       selfSignedCertificate:
-        disabled: true                    # TLS 由 APISIX Ingress 處理
-  podTemplate:
-    spec:
-      containers:
-        - name: kibana
-          resources:
-            requests:
-              memory: 512Mi
-              cpu: 250m
-            limits:
-              memory: 1Gi
-              cpu: 1
----
-# APM Server — ECK Custom Resource
-apiVersion: apm.k8s.elastic.co/v1
-kind: ApmServer
-metadata:
-  name: ekmai-apm
-  namespace: ekmai-observe
-  labels:
-    app.kubernetes.io/part-of: ekmai
-spec:
-  version: 9.2.3
-  count: 1
-  elasticsearchRef:
-    name: ekmai-es
-  kibanaRef:
-    name: ekmai-kibana
-  podTemplate:
-    spec:
-      containers:
-        - name: apm-server
-          resources:
-            requests:
-              memory: 256Mi
-              cpu: 100m
-            limits:
-              memory: 512Mi
-              cpu: 500m
+        disabled: true

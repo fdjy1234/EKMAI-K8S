@@ -1,52 +1,34 @@
-# ============================================================
-# APISIX Helm Values — EKMAI Gateway
-# helm install apisix apisix/apisix -n ekmai-gateway -f apisix-values.yaml
-# ============================================================
-
 apisix:
   image:
     repository: apache/apisix
     tag: 3.14.1-debian
-  replicaCount: 2
+  replicaCount: 1
 
+  # Disable SSL initially for local testing, can be enabled later
   ssl:
-    enabled: true
-    existingSecret: ekmai-tls-cert       # 企業 TLS 證書 Secret
+    enabled: false
+    # existingSecret: ekmai-tls-cert
 
   admin:
     credentials:
-      admin: "edd1c9f034335f136f87ad84b625c8f1"
+      admin: "edd1c9f034335f136f87ad84b625c8f1" 
       viewer: "4054f7cf07e344346cd3f287985e76a2"
     allow:
       ipList:
-        - "10.0.0.0/8"                   # K8S Pod CIDR
-        - "172.16.0.0/12"
-        - "192.168.0.0/16"
+        - "0.0.0.0/0"     # Open for local testing via minikube/k3d
 
   prometheus:
     enabled: true
 
-  resources:
-    requests:
-      cpu: 250m
-      memory: 256Mi
-    limits:
-      cpu: 1000m
-      memory: 1Gi
-
 etcd:
-  enabled: true
-  replicaCount: 3
+  replicaCount: 1            # 1 node for local testing
   persistence:
     enabled: true
-    size: 8Gi
-  resources:
-    requests:
-      cpu: 250m
-      memory: 512Mi
-    limits:
-      cpu: 500m
-      memory: 1Gi
+    size: 2Gi
+  auth:
+    rbac:
+      create: false
+      enabled: false
 
 dashboard:
   enabled: true
@@ -55,18 +37,16 @@ dashboard:
     authentication:
       users:
         - username: admin
-          password: admin              # ⚠️ 生產環境請更換
+          password: admin
 
 gateway:
-  type: LoadBalancer                   # 或 NodePort
+  type: NodePort             # Local access via port forwarding or NodePort
   http:
     enabled: true
     servicePort: 80
-    containerPort: 9080
   tls:
-    enabled: true
+    enabled: false
     servicePort: 443
-    containerPort: 9443
 
 ingress-controller:
   enabled: true
