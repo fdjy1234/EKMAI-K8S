@@ -76,20 +76,22 @@ spec:
               value: info
             - name: KC_HEALTH_ENABLED
               value: "true"
+          startupProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 30       # 最多等 30*10=300s 啟動
           readinessProbe:
-            httpGet:
-              path: /health/ready
+            tcpSocket:
               port: 8080
-            initialDelaySeconds: 60
             periodSeconds: 15
-            timeoutSeconds: 10
+            timeoutSeconds: 5
           livenessProbe:
-            httpGet:
-              path: /health/live
+            tcpSocket:
               port: 8080
-            initialDelaySeconds: 120
             periodSeconds: 30
-            timeoutSeconds: 10
+            timeoutSeconds: 5
           resources:
             requests:
               cpu: 250m
