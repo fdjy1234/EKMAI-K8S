@@ -24,24 +24,31 @@ Write-Host " EKMAI-K8S Teardown" -ForegroundColor Red
 Write-Host "========================================" -ForegroundColor Red
 
 # Reverse order of deployment
-Write-Host "`n[1/6] Removing Gateway Ingress..." -ForegroundColor Yellow
+Write-Host "`n[1/8] Removing PodDisruptionBudgets..." -ForegroundColor Yellow
+kubectl delete -f "$root/base/pod-disruption-budgets.yaml" --ignore-not-found
+
+Write-Host "`n[2/8] Removing Gateway Ingress..." -ForegroundColor Yellow
 kubectl delete -k "$root/base/gateway/" --ignore-not-found
 
-Write-Host "`n[2/6] Removing Prometheus Stack..." -ForegroundColor Yellow
+Write-Host "`n[3/8] Removing Prometheus Stack..." -ForegroundColor Yellow
 helm uninstall kube-prometheus -n ekmai-observe 2>$null
 
-Write-Host "`n[3/6] Removing ELK Stack..." -ForegroundColor Yellow
+Write-Host "`n[4/8] Removing ELK Stack..." -ForegroundColor Yellow
 kubectl delete -k "$root/base/observe/" --ignore-not-found
 
-Write-Host "`n[4/6] Removing Wiki.js + Outline..." -ForegroundColor Yellow
+Write-Host "`n[5/8] Removing Wiki.js + Outline..." -ForegroundColor Yellow
 kubectl delete -k "$root/base/kb/" --ignore-not-found
 
-Write-Host "`n[5/6] Removing Mattermost..." -ForegroundColor Yellow
+Write-Host "`n[6/8] Removing Mattermost..." -ForegroundColor Yellow
 kubectl delete -k "$root/base/collab/" --ignore-not-found
 
-Write-Host "`n[6/6] Removing Keycloak + APISIX..." -ForegroundColor Yellow
+Write-Host "`n[7/8] Removing Keycloak + APISIX..." -ForegroundColor Yellow
 kubectl delete -k "$root/base/iam/" --ignore-not-found
 helm uninstall apisix -n ekmai-gateway 2>$null
+
+Write-Host "`n[8/8] Removing Default Policies & LimitRanges..." -ForegroundColor Yellow
+kubectl delete -f "$root/base/default-network-policies.yaml" --ignore-not-found
+kubectl delete -f "$root/base/limitranges.yaml" --ignore-not-found
 
 if ($DeleteData) {
     Write-Host "`n[!] Deleting PVCs (DATA WILL BE LOST)..." -ForegroundColor Red

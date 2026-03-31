@@ -5,7 +5,11 @@
 # ============================================================
 
 grafana:
-  adminPassword: admin              # ⚠️ 生產環境請更換
+  adminPassword: ""                   # ⚠️ 使用 existingSecret 取代硬編碼密碼
+  admin:
+    existingSecret: grafana-admin-secret
+    userKey: username
+    passwordKey: password
   persistence:
     enabled: true
     size: 5Gi

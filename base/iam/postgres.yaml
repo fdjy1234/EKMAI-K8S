@@ -24,6 +24,10 @@ spec:
           ports:
             - containerPort: 5432
               name: postgres
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           env:
             - name: POSTGRES_DB
               value: keycloak

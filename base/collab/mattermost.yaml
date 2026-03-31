@@ -34,6 +34,11 @@ spec:
           ports:
             - containerPort: 8065
               name: http
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           env:
             - name: MM_SQLSETTINGS_DRIVERNAME
               value: postgres

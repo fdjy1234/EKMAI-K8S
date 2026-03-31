@@ -1,0 +1,45 @@
+---
+# PodDisruptionBudgets — 保證關鍵服務在維護時仍可用
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: keycloak-pdb
+  namespace: ekmai-iam
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: keycloak
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: mattermost-pdb
+  namespace: ekmai-collab
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: mattermost-app
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: outline-pdb
+  namespace: ekmai-kb
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: outline-app
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: wikijs-pdb
+  namespace: ekmai-kb
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: wikijs-app

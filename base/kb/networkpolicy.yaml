@@ -58,3 +58,45 @@ spec:
       ports:
         - protocol: TCP
           port: 6379
+---
+# 允許 Gateway 存取 Wiki.js
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: wikijs-ingress-policy
+  namespace: ekmai-kb
+spec:
+  podSelector:
+    matchLabels:
+      app: wikijs-app
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              app.kubernetes.io/component: gateway
+      ports:
+        - protocol: TCP
+          port: 3000
+---
+# 允許 Gateway 存取 Outline
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: outline-ingress-policy
+  namespace: ekmai-kb
+spec:
+  podSelector:
+    matchLabels:
+      app: outline-app
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              app.kubernetes.io/component: gateway
+      ports:
+        - protocol: TCP
+          port: 3000

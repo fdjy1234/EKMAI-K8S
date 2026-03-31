@@ -13,7 +13,7 @@ resources:
 
 # 開發環境：降低 replica 與資源
 patches:
-  # Keycloak 單 replica
+  # Keycloak 單 replica + 開發模式
   - target:
       kind: Deployment
       name: keycloak
@@ -27,8 +27,9 @@ patches:
       - op: replace
         path: /spec/template/spec/containers/0/resources/requests/memory
         value: 256Mi
-
-  # Elasticsearch 開發模式 (已在 base 中是 1 節點)
+      - op: replace
+        path: /spec/template/spec/containers/0/args
+        value: ["start-dev"]
 
   # Mattermost 低資源
   - target:

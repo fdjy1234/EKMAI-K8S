@@ -1,6 +1,8 @@
 ---
 # EKMAI 統一 Ingress 定義
 # 使用 APISIX Ingress Controller 路由到各服務
+# ⚠️ Ingress 後端必須是同一 namespace 的 Service
+# 跨 namespace 路由需透過 ExternalName Service 代理
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -21,7 +23,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: keycloak.ekmai-iam.svc.cluster.local
+                name: keycloak-ext
                 port:
                   number: 8080
 
@@ -32,7 +34,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: mattermost-app.ekmai-collab.svc.cluster.local
+                name: mattermost-ext
                 port:
                   number: 8065
 
@@ -43,7 +45,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: wikijs-app.ekmai-kb.svc.cluster.local
+                name: wikijs-ext
                 port:
                   number: 3000
 
@@ -54,7 +56,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: outline-app.ekmai-kb.svc.cluster.local
+                name: outline-ext
                 port:
                   number: 3000
 
@@ -65,7 +67,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: ekmai-kibana-kb-http.ekmai-observe.svc.cluster.local
+                name: kibana-ext
                 port:
                   number: 5601
 
@@ -76,6 +78,73 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: kube-prometheus-grafana.ekmai-observe.svc.cluster.local
+                name: grafana-ext
                 port:
                   number: 3000
+---
+# ExternalName Services — 跨 namespace 代理
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak-ext
+  namespace: ekmai-gateway
+spec:
+  type: ExternalName
+  externalName: keycloak.ekmai-iam.svc.cluster.local
+  ports:
+    - port: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mattermost-ext
+  namespace: ekmai-gateway
+spec:
+  type: ExternalName
+  externalName: mattermost-app.ekmai-collab.svc.cluster.local
+  ports:
+    - port: 8065
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wikijs-ext
+  namespace: ekmai-gateway
+spec:
+  type: ExternalName
+  externalName: wikijs-app.ekmai-kb.svc.cluster.local
+  ports:
+    - port: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: outline-ext
+  namespace: ekmai-gateway
+spec:
+  type: ExternalName
+  externalName: outline-app.ekmai-kb.svc.cluster.local
+  ports:
+    - port: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana-ext
+  namespace: ekmai-gateway
+spec:
+  type: ExternalName
+  externalName: ekmai-kibana-kb-http.ekmai-observe.svc.cluster.local
+  ports:
+    - port: 5601
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-ext
+  namespace: ekmai-gateway
+spec:
+  type: ExternalName
+  externalName: kube-prometheus-grafana.ekmai-observe.svc.cluster.local
+  ports:
+    - port: 3000

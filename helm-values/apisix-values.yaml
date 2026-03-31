@@ -11,11 +11,13 @@ apisix:
 
   admin:
     credentials:
-      admin: "edd1c9f034335f136f87ad84b625c8f1" 
-      viewer: "4054f7cf07e344346cd3f287985e76a2"
+      # ⚠️ 生產環境請更換為強密碼 — 使用 `openssl rand -hex 16` 生成
+      admin: "REPLACE_WITH_STRONG_API_KEY"
+      viewer: "REPLACE_WITH_STRONG_VIEWER_KEY"
     allow:
       ipList:
-        - "0.0.0.0/0"     # Open for local testing via minikube/k3d
+        - "10.0.0.0/8"          # K8s Pod CIDR
+        - "172.16.0.0/12"       # K8s Service CIDR
 
   prometheus:
     enabled: true
@@ -27,8 +29,8 @@ etcd:
     size: 2Gi
   auth:
     rbac:
-      create: false
-      enabled: false
+      create: true
+      enabled: true
 
 dashboard:
   enabled: true
@@ -36,8 +38,9 @@ dashboard:
   config:
     authentication:
       users:
+        # ⚠️ 生產環境請更換
         - username: admin
-          password: admin
+          password: "REPLACE_WITH_STRONG_PASSWORD"
 
 gateway:
   type: NodePort             # Local access via port forwarding or NodePort

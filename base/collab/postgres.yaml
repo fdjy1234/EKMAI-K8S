@@ -23,6 +23,10 @@ spec:
           ports:
             - containerPort: 5432
               name: postgres
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           env:
             - name: POSTGRES_DB
               value: mattermost
@@ -37,7 +41,7 @@ spec:
                   name: mattermost-db-secret
                   key: password
             - name: POSTGRES_HOST_AUTH_METHOD
-              value: trust
+              value: scram-sha-256
           readinessProbe:
             exec:
               command: ["pg_isready", "-U", "mmuser", "-d", "mattermost"]

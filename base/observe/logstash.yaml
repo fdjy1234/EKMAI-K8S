@@ -65,6 +65,13 @@ spec:
             - name: pipeline
               mountPath: /usr/share/logstash/pipeline/apisix.conf
               subPath: apisix.conf
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1000m"
+              memory: 1Gi
           readinessProbe:
             httpGet:
               path: /_node/stats

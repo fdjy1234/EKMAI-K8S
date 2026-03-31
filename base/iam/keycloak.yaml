@@ -31,7 +31,13 @@ spec:
       containers:
         - name: keycloak
           image: quay.io/keycloak/keycloak:26.1
-          args: ["start-dev"]
+          args: ["start", "--optimized"]
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
           ports:
             - containerPort: 8080
               name: http
@@ -77,18 +83,21 @@ spec:
             - name: KC_HEALTH_ENABLED
               value: "true"
           startupProbe:
-            tcpSocket:
+            httpGet:
+              path: /health/started
               port: 8080
             initialDelaySeconds: 30
             periodSeconds: 10
             failureThreshold: 30       # 最多等 30*10=300s 啟動
           readinessProbe:
-            tcpSocket:
+            httpGet:
+              path: /health/ready
               port: 8080
             periodSeconds: 15
             timeoutSeconds: 5
           livenessProbe:
-            tcpSocket:
+            httpGet:
+              path: /health/live
               port: 8080
             periodSeconds: 30
             timeoutSeconds: 5
@@ -104,7 +113,19 @@ spec:
               mountPath: /opt/keycloak/data
       volumes:
         - name: keycloak-data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: keycloak-data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: keycloak-data
+  namespace: ekmai-iam
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
 ---
 apiVersion: v1
 kind: Service

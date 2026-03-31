@@ -7,9 +7,16 @@ Mattermost/config/
 keycloak/keycloak_data/
 wikijs/wiki/data/
 
+# K8S Secrets (actual values)
+secrets/secrets.yaml
+!secrets/secrets.example.yaml
+
 # Environment variables (contain secrets)
 **/.env
 !**/.env.example
+
+# Backups
+backups/
 
 # Temporary and logs
 tmp/
@@ -19,7 +26,12 @@ tmp/*.pid
 
 # Certificates / keys
 *.pem
+*.key
+*.crt
+*.pfx
 
 # OS / editor
 .DS_Store
 Thumbs.db
+.vscode/
+.idea/

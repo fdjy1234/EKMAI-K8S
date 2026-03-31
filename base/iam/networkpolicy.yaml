@@ -19,3 +19,32 @@ spec:
       ports:
         - protocol: TCP
           port: 5432
+---
+# 允許 Gateway namespace 存取 Keycloak
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: keycloak-ingress-policy
+  namespace: ekmai-iam
+spec:
+  podSelector:
+    matchLabels:
+      app: keycloak
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              app.kubernetes.io/component: gateway
+      ports:
+        - protocol: TCP
+          port: 8080
+    # 允許同 namespace 內所有 Pod（如 gitlab-proxy 需要連 Keycloak）
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              app.kubernetes.io/part-of: ekmai
+      ports:
+        - protocol: TCP
+          port: 8080

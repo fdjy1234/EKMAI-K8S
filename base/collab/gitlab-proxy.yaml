@@ -42,7 +42,23 @@ spec:
                   name: gitlab-proxy-secret
                   key: client-secret
             - name: KEYCLOAK_TLS_VERIFY
-              value: "false"
+              value: "true"
+          readinessProbe:
+            tcpSocket:
+              port: 9009
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 9009
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
           resources:
             requests:
               cpu: 50m

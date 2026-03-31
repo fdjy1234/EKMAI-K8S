@@ -12,7 +12,7 @@ resources:
   - ../../base/observe
 
 patches:
-  # Keycloak HA — 2 replicas
+  # Keycloak HA — 2 replicas + anti-affinity
   - target:
       kind: Deployment
       name: keycloak
@@ -20,6 +20,15 @@ patches:
       - op: replace
         path: /spec/replicas
         value: 2
+      - op: add
+        path: /spec/template/spec/topologySpreadConstraints
+        value:
+          - maxSkew: 1
+            topologyKey: kubernetes.io/hostname
+            whenUnsatisfiable: DoNotSchedule
+            labelSelector:
+              matchLabels:
+                app: keycloak
 
   # Mattermost — 增加資源
   - target:
@@ -41,6 +50,26 @@ patches:
       - op: replace
         path: /spec/nodeSets/0/count
         value: 3
+      - op: replace
+        path: /spec/nodeSets/0/volumeClaimTemplates/0/spec/resources/requests/storage
+        value: 20Gi
+
+  # PostgreSQL 資料庫增加儲存
+  - target:
+      kind: StatefulSet
+      name: keycloak-db
+    patch: |
+      - op: replace
+        path: /spec/volumeClaimTemplates/0/spec/resources/requests/storage
+        value: 10Gi
+
+  - target:
+      kind: StatefulSet
+      name: mattermost-db
+    patch: |
+      - op: replace
+        path: /spec/volumeClaimTemplates/0/spec/resources/requests/storage
+        value: 10Gi
 
 commonLabels:
   environment: prod

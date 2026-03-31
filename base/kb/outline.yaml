@@ -41,6 +41,11 @@ spec:
               command: ["pg_isready", "-U", "outline"]
             initialDelaySeconds: 5
             periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "outline"]
+            initialDelaySeconds: 30
+            periodSeconds: 20
           resources:
             requests:
               cpu: 100m
@@ -101,6 +106,11 @@ spec:
               command: ["redis-cli", "ping"]
             initialDelaySeconds: 5
             periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["redis-cli", "ping"]
+            initialDelaySeconds: 15
+            periodSeconds: 20
           resources:
             requests:
               cpu: 50m
