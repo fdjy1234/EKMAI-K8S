@@ -10,10 +10,10 @@ apisix:
     # existingSecret: ekmai-tls-cert
 
   admin:
-    credentials:
-      # ⚠️ 生產環境請更換為強密碼 — 使用 `openssl rand -hex 16` 生成
-      admin: "REPLACE_WITH_STRONG_API_KEY"
-      viewer: "REPLACE_WITH_STRONG_VIEWER_KEY"
+    # For production, do NOT hardcode API keys here. Use a Kubernetes Secret
+    # and reference it via your deployment process or a secret-manager plugin.
+    # Example: set `apisix.admin.credentials` from a sealed/managed secret.
+    credentials: {}
     allow:
       ipList:
         - "10.0.0.0/8"          # K8s Pod CIDR
@@ -38,9 +38,8 @@ dashboard:
   config:
     authentication:
       users:
-        # ⚠️ 生產環境請更換
-        - username: admin
-          password: "REPLACE_WITH_STRONG_PASSWORD"
+        # Do not store dashboard user/password in values. Use a Secret such as
+        # grafana-admin-secret and configure the chart to read from it.
 
 gateway:
   type: NodePort             # Local access via port forwarding or NodePort

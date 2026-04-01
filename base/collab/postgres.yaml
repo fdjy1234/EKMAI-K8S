@@ -24,6 +24,7 @@ spec:
             - containerPort: 5432
               name: postgres
           securityContext:
+            runAsNonRoot: true
             allowPrivilegeEscalation: false
             capabilities:
               drop: ["ALL"]
@@ -47,11 +48,15 @@ spec:
               command: ["pg_isready", "-U", "mmuser", "-d", "mattermost"]
             initialDelaySeconds: 5
             periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
           livenessProbe:
             exec:
               command: ["pg_isready", "-U", "mmuser", "-d", "mattermost"]
             initialDelaySeconds: 30
             periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
           resources:
             requests:
               cpu: 100m

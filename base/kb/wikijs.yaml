@@ -51,6 +51,11 @@ spec:
           volumeMounts:
             - name: db-data
               mountPath: /var/lib/postgresql/data
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
   volumeClaimTemplates:
     - metadata:
         name: db-data
@@ -138,12 +143,24 @@ spec:
               port: 3000
             initialDelaySeconds: 30
             periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 6
+          startupProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
           livenessProbe:
             httpGet:
               path: /
               port: 3000
             initialDelaySeconds: 60
             periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
           resources:
             requests:
               cpu: 100m
@@ -154,6 +171,12 @@ spec:
           volumeMounts:
             - name: wiki-data
               mountPath: /wiki/data
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
       volumes:
         - name: wiki-data
           persistentVolumeClaim:
@@ -177,6 +200,8 @@ metadata:
   namespace: ekmai-kb
 spec:
   type: ClusterIP
+                timeoutSeconds: 5
+                failureThreshold: 6
   selector:
     app: wikijs-app
   ports:

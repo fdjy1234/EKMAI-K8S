@@ -25,7 +25,8 @@ Write-Host "========================================" -ForegroundColor Red
 
 # Reverse order of deployment
 Write-Host "`n[1/8] Removing PodDisruptionBudgets..." -ForegroundColor Yellow
-kubectl delete -f "$root/base/pod-disruption-budgets.yaml" --ignore-not-found
+Write-Host "`n[1/8] Removing PodDisruptionBudgets and namespace security resources..." -ForegroundColor Yellow
+kubectl delete -f "$root/base/security/namespace-security.yaml" --ignore-not-found
 
 Write-Host "`n[2/8] Removing Gateway Ingress..." -ForegroundColor Yellow
 kubectl delete -k "$root/base/gateway/" --ignore-not-found

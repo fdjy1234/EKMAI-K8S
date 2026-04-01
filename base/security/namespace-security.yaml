@@ -1,0 +1,267 @@
+---
+# Namespace-level LimitRanges and NetworkPolicies
+# Includes:
+# - LimitRange per namespace (ekmai-*)
+# - default-deny ingress NetworkPolicy per namespace
+# - allow-from-gateway NetworkPolicy to permit ingress from ekmai-gateway
+# - PodDisruptionBudgets for key applications
+
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: ekmai-limitrange
+  namespace: ekmai-iam
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: 500m
+        memory: 512Mi
+      defaultRequest:
+        cpu: 100m
+        memory: 128Mi
+      min:
+        cpu: 50m
+        memory: 64Mi
+
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: ekmai-limitrange
+  namespace: ekmai-collab
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: 500m
+        memory: 512Mi
+      defaultRequest:
+        cpu: 100m
+        memory: 128Mi
+      min:
+        cpu: 50m
+        memory: 64Mi
+
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: ekmai-limitrange
+  namespace: ekmai-kb
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: 500m
+        memory: 512Mi
+      defaultRequest:
+        cpu: 100m
+        memory: 128Mi
+      min:
+        cpu: 50m
+        memory: 64Mi
+
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: ekmai-limitrange
+  namespace: ekmai-observe
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: 1000m
+        memory: 1Gi
+      defaultRequest:
+        cpu: 200m
+        memory: 256Mi
+      min:
+        cpu: 50m
+        memory: 64Mi
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: ekmai-iam
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress: []
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-and-same-ns
+  namespace: ekmai-iam
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: ekmai
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector: {}                # allow same namespace
+        - namespaceSelector:
+            matchLabels:
+              app.kubernetes.io/component: gateway
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: ekmai-collab
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress: []
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-and-same-ns
+  namespace: ekmai-collab
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: ekmai
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector: {}
+        - namespaceSelector:
+            matchLabels:
+              app.kubernetes.io/component: gateway
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: ekmai-kb
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress: []
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-and-same-ns
+  namespace: ekmai-kb
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: ekmai
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector: {}
+        - namespaceSelector:
+            matchLabels:
+              app.kubernetes.io/component: gateway
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: ekmai-observe
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress: []
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-gateway-and-same-ns
+  namespace: ekmai-observe
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: ekmai
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector: {}
+        - namespaceSelector:
+            matchLabels:
+              app.kubernetes.io/component: gateway
+
+---
+# PodDisruptionBudgets for key apps
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pdb-keycloak
+  namespace: ekmai-iam
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: keycloak
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pdb-mattermost
+  namespace: ekmai-collab
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: mattermost-app
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pdb-wikijs
+  namespace: ekmai-kb
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: wikijs-app
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pdb-outline
+  namespace: ekmai-kb
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: outline-app
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pdb-logstash
+  namespace: ekmai-observe
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: logstash

@@ -26,6 +26,11 @@ spec:
               env:
                 - name: ES_JAVA_OPTS
                   value: "-Xms1g -Xmx1g"
+              securityContext:
+                runAsNonRoot: true
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: ["ALL"]
               resources:
                 requests:
                   memory: 1Gi

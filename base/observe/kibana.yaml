@@ -16,6 +16,11 @@ spec:
     spec:
       containers:
         - name: kibana
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           resources:
             requests:
               memory: 512Mi

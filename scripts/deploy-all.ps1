@@ -42,7 +42,7 @@ kubectl apply -f "$root/namespaces/namespaces.yaml"
 
 # ── 2. LimitRanges ──
 Write-Host "`n[2/11] Applying LimitRanges..." -ForegroundColor Yellow
-kubectl apply -f "$root/base/limitranges.yaml"
+kubectl apply -f "$root/base/security/namespace-security.yaml"
 
 # ── 3. Default Network Policies ──
 Write-Host "`n[3/11] Applying Default Network Policies..." -ForegroundColor Yellow
@@ -107,9 +107,10 @@ if ($Environment -eq "prod") {
     kubectl apply -k "$root/overlays/dev/"
 }
 
-# ── PodDisruptionBudgets ──
-Write-Host "`n[PDB] Applying PodDisruptionBudgets..." -ForegroundColor Magenta
-kubectl apply -f "$root/base/pod-disruption-budgets.yaml"
+# ── PodDisruptionBudgets & Namespace security resources ──
+Write-Host "`n[PDB/Security] Ensuring namespace security resources are applied..." -ForegroundColor Magenta
+# `namespace-security.yaml` includes LimitRanges, default-deny NetworkPolicies, and PDBs
+kubectl apply -f "$root/base/security/namespace-security.yaml"
 
 Write-Host "`n========================================" -ForegroundColor Green
 Write-Host " EKMAI-K8S Deploy Complete!" -ForegroundColor Green

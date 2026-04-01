@@ -53,9 +53,14 @@ spec:
           ports:
             - containerPort: 5044
             - containerPort: 8080
+            - containerPort: 9600
+              name: http-metrics
           env:
             - name: ELASTIC_USERNAME
-              value: "elastic"
+              valueFrom:
+                secretKeyRef:
+                  name: elk-secrets
+                  key: ELASTIC_USERNAME
             - name: ELASTIC_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -78,12 +83,16 @@ spec:
               port: 9600
             initialDelaySeconds: 60
             periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 6
           livenessProbe:
             httpGet:
               path: /_node/stats
               port: 9600
             initialDelaySeconds: 90
             periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
       volumes:
         - name: pipeline
           configMap:
