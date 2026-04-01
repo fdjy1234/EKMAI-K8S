@@ -10,6 +10,8 @@ resources:
   - ../../base/collab
   - ../../base/kb
   - ../../base/observe
+  - ../../base/security
+  - ../../secrets/secrets.example.yaml
 
 # 開發環境：降低 replica 與資源
 patches:

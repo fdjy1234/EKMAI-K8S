@@ -10,6 +10,8 @@ resources:
   - ../../base/collab
   - ../../base/kb
   - ../../base/observe
+  - ../../base/security
+  - ../../secrets/secrets.example.yaml
 
 patches:
   # Keycloak HA — 2 replicas + anti-affinity
