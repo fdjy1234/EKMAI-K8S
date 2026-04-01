@@ -41,31 +41,45 @@ $failCount = 0
 foreach ($db in $databases) {
     $backupFile = Join-Path $BackupDir "$($db.Name)_$timestamp.sql.gz"
     Write-Host "`nBacking up $($db.Name)..." -ForegroundColor Yellow
+    $attempt = 0
+    $maxAttempts = 3
+    $ok = $false
+    while (-not $ok -and $attempt -lt $maxAttempts) {
+        $attempt++
+        try {
+            # Read username/password from secret
+            $uEnc = kubectl get secret $db.SecretName -n $db.Namespace -o jsonpath='{.data.username}' 2>$null
+            $pEnc = kubectl get secret $db.SecretName -n $db.Namespace -o jsonpath='{.data.password}' 2>$null
+            if ($uEnc) { $username = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($uEnc)) } else { $username = $db.Name }
+            if ($pEnc) { $password = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($pEnc)) } else { $password = "" }
 
-    try {
-        # Get username from secret
-        $username = kubectl get secret $db.SecretName -n $db.Namespace -o jsonpath='{.data.username}' 2>$null
-        if ($username) {
-            $username = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($username))
-        } else {
-            $username = $db.Name
+            # Execute pg_dump inside pod with PGPASSWORD env and capture stdout
+            $cmd = "/bin/sh -c \"PGPASSWORD='$password' pg_dump -U $username -d $($db.DB) --clean --if-exists --no-owner\""
+            $dump = kubectl exec $db.Pod -n $db.Namespace -- $cmd 2>&1
+
+            if (-not $dump) { throw "pg_dump returned empty output" }
+
+            # Compress and write to .gz
+            $bytes = [System.Text.Encoding]::UTF8.GetBytes($dump)
+            $fs = [System.IO.File]::Open($backupFile, [System.IO.FileMode]::Create)
+            $gzip = New-Object System.IO.Compression.GzipStream($fs, [System.IO.Compression.CompressionMode]::Compress)
+            $gzip.Write($bytes, 0, $bytes.Length)
+            $gzip.Close()
+            $fs.Close()
+
+            if (Test-Path $backupFile) {
+                $size = (Get-Item $backupFile).Length / 1KB
+                Write-Host "  ✓ $($db.Name) -> $backupFile ($([math]::Round($size, 1)) KB)" -ForegroundColor Green
+                $successCount++
+                $ok = $true
+            } else {
+                throw "Failed to create backup file"
+            }
+        } catch {
+            Write-Host "  Attempt $attempt: backup failed for $($db.Name): $_" -ForegroundColor Yellow
+            if ($attempt -lt $maxAttempts) { Start-Sleep -Seconds (5 * $attempt) }
+            else { Write-Host "  ✗ $($db.Name) backup failed after $maxAttempts attempts" -ForegroundColor Red; $failCount++ }
         }
-
-        # Run pg_dump inside the pod and compress
-        kubectl exec $db.Pod -n $db.Namespace -- `
-            pg_dump -U $username -d $db.DB --clean --if-exists --no-owner 2>$null |
-            & { process { $_ } } |
-            Out-File -FilePath $backupFile -Encoding utf8
-
-        if (Test-Path $backupFile) {
-            $size = (Get-Item $backupFile).Length / 1KB
-            Write-Host "  ✓ $($db.Name) -> $backupFile ($([math]::Round($size, 1)) KB)" -ForegroundColor Green
-            $successCount++
-        }
-    }
-    catch {
-        Write-Host "  ✗ $($db.Name) backup failed: $_" -ForegroundColor Red
-        $failCount++
     }
 }
 

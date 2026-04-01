@@ -16,6 +16,27 @@
 
 $ErrorActionPreference = "Continue"
 
+# Helper: run a kubectl command with optional retries
+function Invoke-KubectlCmd {
+    param(
+        [string]$Args,
+        [int]$Retries = 2,
+        [int]$DelaySeconds = 2
+    )
+    for ($i = 0; $i -le $Retries; $i++) {
+        try {
+            $out = kubectl $Args 2>&1
+            return $out
+        } catch {
+            if ($i -lt $Retries) { Start-Sleep -Seconds ($DelaySeconds * [math]::Pow(2, $i)) }
+            else { throw $_ }
+        }
+    }
+}
+
+# Verify kubectl available
+try { kubectl version --client --short > $null } catch { Write-Host "kubectl not found or not configured" -ForegroundColor Red; exit 1 }
+
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host " EKMAI-K8S Health Check" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
@@ -28,7 +49,7 @@ Write-Host "`n[1] Pod Status" -ForegroundColor Yellow
 Write-Host "────────────────────────────────────────"
 foreach ($ns in $namespaces) {
     Write-Host "`n  Namespace: $ns" -ForegroundColor Cyan
-    $pods = kubectl get pods -n $ns --no-headers 2>$null
+    $pods = Invoke-KubectlCmd "get pods -n $ns --no-headers" 2>$null
     if (-not $pods) {
         Write-Host "    No pods found" -ForegroundColor DarkYellow
         continue
@@ -48,7 +69,7 @@ foreach ($ns in $namespaces) {
 Write-Host "`n[2] PVC Status" -ForegroundColor Yellow
 Write-Host "────────────────────────────────────────"
 foreach ($ns in $namespaces) {
-    $pvcs = kubectl get pvc -n $ns --no-headers 2>$null
+    $pvcs = Invoke-KubectlCmd "get pvc -n $ns --no-headers" 2>$null
     if ($pvcs) {
         Write-Host "`n  Namespace: $ns" -ForegroundColor Cyan
         $pvcs | ForEach-Object {
@@ -67,7 +88,7 @@ foreach ($ns in $namespaces) {
 Write-Host "`n[3] Service Endpoints" -ForegroundColor Yellow
 Write-Host "────────────────────────────────────────"
 foreach ($ns in $namespaces) {
-    $endpoints = kubectl get endpoints -n $ns --no-headers 2>$null
+    $endpoints = Invoke-KubectlCmd "get endpoints -n $ns --no-headers" 2>$null
     if ($endpoints) {
         Write-Host "`n  Namespace: $ns" -ForegroundColor Cyan
         $endpoints | ForEach-Object {
@@ -86,7 +107,11 @@ foreach ($ns in $namespaces) {
 Write-Host "`n[4] Resource Usage (Top Pods)" -ForegroundColor Yellow
 Write-Host "────────────────────────────────────────"
 foreach ($ns in $namespaces) {
-    $top = kubectl top pods -n $ns --no-headers 2>$null
+    try {
+        $top = Invoke-KubectlCmd "top pods -n $ns --no-headers" 2>$null
+    } catch {
+        $top = $null
+    }
     if ($top) {
         Write-Host "`n  Namespace: $ns" -ForegroundColor Cyan
         $top | ForEach-Object { Write-Host "    $_" }
@@ -97,7 +122,7 @@ foreach ($ns in $namespaces) {
 Write-Host "`n[5] Recent Warning Events" -ForegroundColor Yellow
 Write-Host "────────────────────────────────────────"
 foreach ($ns in $namespaces) {
-    $events = kubectl get events -n $ns --field-selector type=Warning --sort-by=.lastTimestamp --no-headers 2>$null | Select-Object -Last 5
+    $events = Invoke-KubectlCmd "get events -n $ns --field-selector type=Warning --sort-by=.lastTimestamp --no-headers" 2>$null | Select-Object -Last 5
     if ($events) {
         Write-Host "`n  Namespace: $ns" -ForegroundColor Cyan
         $events | ForEach-Object {
